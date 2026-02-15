@@ -1,0 +1,40 @@
+name: Weekly FPL Pipeline
+
+on:
+  schedule:
+    # Tuesdays at 08:00 UTC — after Monday GW deadlines and points finalization
+    - cron: "0 8 * * 2"
+  workflow_dispatch: # manual trigger
+
+env:
+  FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+
+jobs:
+  ingest-and-transform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: make sync
+
+      - name: Ingest FPL API data
+        run: make ingest-fpl
+
+      - name: Ingest football-data.org data
+        run: make ingest-football-data
+
+      - name: Run SQLMesh models
+        run: make sqlmesh-run
+
+      # Optional: upload the DuckDB file as an artifact for debugging
+      - name: Upload data artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fpl-data-${{ github.run_number }}
+          path: data/fpl.duckdb
+          retention-days: 7

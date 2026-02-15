@@ -1,0 +1,16 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.python-version
+dlt/.dlt/secrets.toml
+dlt/pipeline_data/
+sqlmesh/.cache/
+sqlmesh/web/
+*.duckdb
+*.duckdb.wal
+*.ducklake
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

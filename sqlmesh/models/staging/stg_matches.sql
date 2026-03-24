@@ -5,30 +5,30 @@ MODEL (
 );
 
 SELECT
-    id                                          AS match_id,
+    id                                                  AS match_id,
     matchday,
-    utc_date                                    AS kickoff_time,
+    utc_date                                            AS kickoff_time,
     status,
 
     -- Home team
-    home_team__name                             AS home_team_name,
-    home_team__id                               AS home_team_fd_id,
-    COALESCE(score__full_time__home, 0)         AS home_goals,
-    COALESCE(score__half_time__home, 0)         AS home_goals_ht,
+    home_team->>'$.name'                                AS home_team_name,
+    CAST(home_team->>'$.id' AS INTEGER)                 AS home_team_fd_id,
+    CAST(score->>'$.fullTime.home' AS INTEGER)          AS home_goals,
+    CAST(score->>'$.halfTime.home' AS INTEGER)          AS home_goals_ht,
 
     -- Away team
-    away_team__name                             AS away_team_name,
-    away_team__id                               AS away_team_fd_id,
-    COALESCE(score__full_time__away, 0)         AS away_goals,
-    COALESCE(score__half_time__away, 0)         AS away_goals_ht,
+    away_team->>'$.name'                                AS away_team_name,
+    CAST(away_team->>'$.id' AS INTEGER)                 AS away_team_fd_id,
+    CAST(score->>'$.fullTime.away' AS INTEGER)          AS away_goals,
+    CAST(score->>'$.halfTime.away' AS INTEGER)          AS away_goals_ht,
 
     -- Result
     CASE
-        WHEN score__winner = 'HOME_TEAM' THEN 'home_win'
-        WHEN score__winner = 'AWAY_TEAM' THEN 'away_win'
-        WHEN score__winner = 'DRAW' THEN 'draw'
+        WHEN score->>'$.winner' = 'HOME_TEAM' THEN 'home_win'
+        WHEN score->>'$.winner' = 'AWAY_TEAM' THEN 'away_win'
+        WHEN score->>'$.winner' = 'DRAW' THEN 'draw'
         ELSE 'scheduled'
-    END                                         AS result
+    END                                                 AS result
 
-FROM raw_football_data.matches
+FROM football_data.pl_matches
 WHERE status IN ('FINISHED', 'IN_PLAY', 'PAUSED', 'TIMED', 'SCHEDULED')

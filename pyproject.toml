@@ -1,13 +1,36 @@
 [project]
 name = "epl-mastermind"
-version = "0.1.0"
-description = "Premier League analytics lakehouse — FPL + football-data.org on a portable stack (dlt → DucLake → SQLMesh)"
+version = "0.2.0"
+description = "Premier League analytics pipeline — dlt + SQLMesh + DuckDB"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "dlt[ducklake]>=1.20.0",
-    "polars>=1.36.1",
-    "psycopg2-binary>=2.9.11",
-    "python-dotenv>=1.2.1",
-    "sqlmesh[duckdb,github,web]>=0.228.1",
+    # Ingestion
+    "dlt[duckdb]>=1.5.0",
+    # Transformation
+    "sqlmesh[duckdb,web]>=0.142.0",
+    # Compute
+    "duckdb>=1.3.0",
+    # Data processing (for Python models later)
+    "polars>=1.30.0",
+    # HTTP
+    "requests>=2.32.0",
+    # Config
+    "python-dotenv>=1.0.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8.0",
+]
+viz = [
+    "marimo>=0.10.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]

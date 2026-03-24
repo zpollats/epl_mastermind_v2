@@ -37,7 +37,7 @@ def football_data_source():
 
     headers = _get_headers()
 
-    @dlt.resource(write_disposition="replace", max_table_nesting=0)
+    @dlt.resource(write_disposition="replace", max_table_nesting=1)
     def pl_matches():
         """All Premier League matches for the current season."""
         resp = requests.get(
@@ -79,7 +79,7 @@ def football_data_source():
 def main():
     pipeline = dlt.pipeline(
         pipeline_name="football_data_pipeline",
-        destination="ducklake",
+        destination="duckdb",
         dataset_name="football_data",
         progress="log",
     )

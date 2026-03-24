@@ -1,5 +1,5 @@
 """
-FPL API Pipeline — Ingest Fantasy Premier League data into DucLake.
+FPL API Pipeline — Ingest Fantasy Premier League data into DuckDB.
 
 Data source: https://fantasy.premierleague.com/api/
 No authentication required for public endpoints.
@@ -11,6 +11,7 @@ Endpoints ingested:
 
 import dlt
 import requests
+from functools import lru_cache
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,33 +19,35 @@ load_dotenv()
 FPL_BASE_URL = "https://fantasy.premierleague.com/api"
 
 
+@lru_cache(maxsize=1)
+def _get_bootstrap() -> dict:
+    """Fetch the bootstrap-static endpoint (single large JSON payload).
+
+    Cached so players/teams/gameweeks don't each trigger a separate HTTP call.
+    """
+    resp = requests.get(f"{FPL_BASE_URL}/bootstrap-static/", timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
 @dlt.source
 def fpl_source():
     """FPL API source — extracts players, teams, gameweeks, and fixtures."""
 
-    def _get_bootstrap():
-        """Fetch the bootstrap-static endpoint (single large JSON payload)."""
-        resp = requests.get(f"{FPL_BASE_URL}/bootstrap-static/", timeout=30)
-        resp.raise_for_status()
-        return resp.json()
-
     @dlt.resource(write_disposition="replace", max_table_nesting=0)
     def players():
         """All ~700 PL players with stats, price, ownership, ICT index."""
-        data = _get_bootstrap()
-        yield data["elements"]
+        yield _get_bootstrap()["elements"]
 
     @dlt.resource(write_disposition="replace", max_table_nesting=0)
     def teams():
         """20 PL teams with strength ratings (attack/defence, home/away)."""
-        data = _get_bootstrap()
-        yield data["teams"]
+        yield _get_bootstrap()["teams"]
 
     @dlt.resource(write_disposition="replace", max_table_nesting=0)
     def gameweeks():
         """38 gameweeks with deadlines, averages, chip usage, top scores."""
-        data = _get_bootstrap()
-        yield data["events"]
+        yield _get_bootstrap()["events"]
 
     @dlt.resource(write_disposition="replace", max_table_nesting=0)
     def fixtures():
@@ -59,8 +62,8 @@ def fpl_source():
 def main():
     pipeline = dlt.pipeline(
         pipeline_name="fpl_pipeline",
-        destination="ducklake",
-        dataset_name="fpl",
+        destination="duckdb",
+        dataset_name="raw_fpl",
         progress="log",
     )
 

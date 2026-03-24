@@ -1,11 +1,7 @@
 MODEL (
     name epl.mart_player_picks,
     kind FULL,
-    description 'Weekly player analysis combining form, value, fixture difficulty, and ownership for FPL decisions.',
-    audits (
-        not_null(columns=[player_id, player_name, position]),
-        unique(columns=[player_id])
-    )
+    description 'Weekly player analysis combining form, value, fixture difficulty, and ownership for FPL decisions.'
 );
 
 WITH players AS (

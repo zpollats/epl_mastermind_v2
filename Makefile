@@ -1,10 +1,8 @@
-.PHONY: help sync ingest ingest-fpl ingest-football-data transform-dev transform-prod run test info ui fetchdf set-gh-secrets
+.PHONY: help sync ingest ingest-fpl ingest-football-data plan plan-dev run test ui clean
 
 SHELL := /usr/bin/env bash
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 ENV_FILE ?= $(ROOT)/.env
-DEV ?= dev
-QUERY ?=
 
 define WITH_ENV
 set -a; [[ -f "$(ENV_FILE)" ]] && . "$(ENV_FILE)"; set +a;
@@ -12,16 +10,19 @@ endef
 
 help:
 	@echo ""
-	@echo "epl_mastermind — Premier League Analytics Lakehouse"
+	@echo "epl_mastermind — FPL Analytics Pipeline"
 	@echo ""
-	@echo "Setup:  make sync"
-	@echo ""
-	@echo "Ingest: make ingest | ingest-fpl | ingest-football-data"
-	@echo "Transform: make transform-dev | transform-prod"
-	@echo "Full run:  make run  (ingest + transform prod)"
-	@echo ""
-	@echo "Quality: make test"
-	@echo "Explore: make ui | make fetchdf QUERY='...'"
+	@echo "  make sync              Install dependencies"
+	@echo "  make ingest-fpl        Pull FPL API data (no key needed)"
+	@echo "  make ingest-fd         Pull football-data.org data (needs API key)"
+	@echo "  make ingest            Run both ingestion pipelines"
+	@echo "  make plan-dev          SQLMesh plan in dev environment"
+	@echo "  make plan              SQLMesh plan in prod"
+	@echo "  make run               Full pipeline: ingest + plan prod"
+	@echo "  make test              Run SQLMesh tests"
+	@echo "  make ui                Launch SQLMesh web UI"
+	@echo "  make marimo            Launch Marimo notebook server"
+	@echo "  make clean             Delete local data"
 	@echo ""
 
 sync:
@@ -30,37 +31,28 @@ sync:
 ingest-fpl:
 	@$(WITH_ENV) cd "$(ROOT)/dlt" && uv run python fpl_pipeline.py
 
-ingest-football-data:
+ingest-fd:
 	@$(WITH_ENV) cd "$(ROOT)/dlt" && uv run python football_data_pipeline.py
 
-ingest: ingest-fpl ingest-football-data
+ingest: ingest-fpl ingest-fd
 
-transform-dev:
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan "$(DEV)"
+plan-dev:
+	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan dev
 
-transform-prod:
+plan:
 	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan
 
-sqlmesh-run:
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh migrate && uv run sqlmesh run prod
-
-run: ingest sqlmesh-run
+run: ingest plan
 
 test:
 	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh test
 
-info:
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh info
-
 ui:
 	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh ui
 
-fetchdf:
-	@if [[ -z "$(strip $(QUERY))" ]]; then \
-		echo "ERROR: QUERY is required. Usage: make fetchdf QUERY='select ...'"; \
-		exit 2; \
-	fi
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh fetchdf "$(QUERY)"
+marimo:
+	@$(WITH_ENV) cd "$(ROOT)" && uv run marimo edit notebooks/
 
-set-gh-secrets:
-	cd "$(ROOT)" && ENV_FILE="$(ROOT)/.env" ./scripts/set_github_actions_secrets_from_env.sh
+clean:
+	rm -rf "$(ROOT)/data/"*.duckdb "$(ROOT)/data/"*.wal
+	rm -rf "$(ROOT)/dlt/.dlt" "$(ROOT)/dlt/fpl_pipeline" "$(ROOT)/dlt/football_data_pipeline"

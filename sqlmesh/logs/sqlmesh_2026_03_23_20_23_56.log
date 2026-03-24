@@ -1,0 +1,69 @@
+2026-03-23 20:23:57,150 - MainThread - sqlmesh.core.config.connection - INFO - Creating new DuckDB adapter for data files: {'../data/fpl.duckdb'} (connection.py:496)
+2026-03-23 20:23:57,641 - MainThread - sqlmesh.core.config.connection - INFO - Using existing DuckDB adapter due to overlapping data file: ../data/fpl.duckdb (connection.py:486)
+2026-03-23 20:23:59,226 - MainThread - sqlmesh.core.plan.evaluator - INFO - Evaluating plan stage CreateSnapshotRecordsStage (evaluator.py:123)
+2026-03-23 20:23:59,242 - MainThread - sqlmesh.core.plan.evaluator - INFO - Evaluating plan stage PhysicalLayerSchemaCreationStage (evaluator.py:123)
+2026-03-23 20:23:59,243 - MainThread - sqlmesh.core.snapshot.evaluator - INFO - Creating schema 'fpl.sqlmesh__epl' (evaluator.py:1449)
+2026-03-23 20:23:59,244 - MainThread - sqlmesh.core.engine_adapter.base - INFO - Executing SQL: /* SQLMESH_PLAN: 6b8565c17d124e5680e231e359904264 */ CREATE SCHEMA IF NOT EXISTS "fpl"."sqlmesh__epl" (base.py:2626)
+2026-03-23 20:23:59,244 - MainThread - sqlmesh.core.plan.evaluator - INFO - Evaluating plan stage BackfillStage (evaluator.py:123)
+2026-03-23 20:23:59,245 - MainThread - sqlmesh.core.snapshot.evaluator - INFO - Listing data objects in schema fpl.sqlmesh__epl (evaluator.py:1616)
+2026-03-23 20:23:59,245 - MainThread - sqlmesh.core.engine_adapter.base - INFO - Executing SQL: /* SQLMESH_PLAN: 6b8565c17d124e5680e231e359904264 */ SELECT CURRENT_CATALOG (base.py:2626)
+2026-03-23 20:23:59,247 - MainThread - sqlmesh.core.engine_adapter.base - INFO - Executing SQL: /* SQLMESH_PLAN: 6b8565c17d124e5680e231e359904264 */ SELECT CURRENT_CATALOG (base.py:2626)
+2026-03-23 20:23:59,247 - MainThread - sqlmesh.core.engine_adapter.base - INFO - Executing SQL: /* SQLMESH_PLAN: 6b8565c17d124e5680e231e359904264 */ SELECT table_name AS name, table_schema AS schema, CASE table_type WHEN 'BASE TABLE' THEN 'table' WHEN 'VIEW' THEN 'view' WHEN 'LOCAL TEMPORARY' THEN 'table' END AS type FROM system.information_schema.tables WHERE (table_catalog = 'fpl' AND table_schema = 'sqlmesh__epl') AND table_name IN ('epl__stg_matches__2835151796') (base.py:2626)
+2026-03-23 20:23:59,261 - MainThread - sqlmesh.core.snapshot.evaluator - INFO - Evaluating snapshot SnapshotId<"fpl"."epl"."stg_matches": 2497244267> (evaluator.py:711)
+2026-03-23 20:23:59,261 - MainThread - sqlmesh.core.snapshot.evaluator - INFO - Inserting data for snapshot SnapshotId<"fpl"."epl"."stg_matches": 2497244267> (evaluator.py:952)
+2026-03-23 20:23:59,266 - MainThread - sqlmesh.core.snapshot.evaluator - INFO - Inserting batch (2024-08-01 00:00:00, 2026-03-22 00:00:00) into fpl.sqlmesh__epl.epl__stg_matches__2835151796' (evaluator.py:984)
+2026-03-23 20:23:59,266 - MainThread - sqlmesh.core.snapshot.evaluator - INFO - Replacing view 'fpl.sqlmesh__epl.epl__stg_matches__2835151796' (evaluator.py:2676)
+2026-03-23 20:23:59,267 - MainThread - sqlmesh.core.engine_adapter.base - INFO - Executing SQL: /* SQLMESH_PLAN: 6b8565c17d124e5680e231e359904264 */ CREATE OR REPLACE VIEW "fpl"."sqlmesh__epl"."epl__stg_matches__2835151796" ("match_id", "matchday", "kickoff_time", "status", "home_team_name", "home_team_fd_id", "home_goals", "home_goals_ht", "away_team_name", "away_team_fd_id", "away_goals", "away_goals_ht", "result") AS SELECT "id" AS "match_id", "matchday" AS "matchday", "utc_date" AS "kickoff_time", "status" AS "status", "home_team" ->> '$.name' AS "home_team_name", CAST("home_team" ->> '$.id' AS INT) AS "home_team_fd_id", CAST("score" ->> '$.fullTime.home' AS INT) AS "home_goals", CAST("score" ->> '$.halfTime.home' AS INT) AS "home_goals_ht", "away_team" ->> '$.name' AS "away_team_name", CAST("away_team" ->> '$.id' AS INT) AS "away_team_fd_id", CAST("score" ->> '$.fullTime.away' AS INT) AS "away_goals", CAST("score" ->> '$.halfTime.away' AS INT) AS "away_goals_ht", CASE WHEN ("score" ->> '$.winner') = 'HOME_TEAM' THEN 'home_win' WHEN ("score" ->> '$.winner') = 'AWAY_TEAM' THEN 'away_win' WHEN ("score" ->> '$.winner') = 'DRAW' THEN 'draw' ELSE 'scheduled' END AS "result" FROM "fpl"."raw_football_data"."pl_matches" AS "pl_matches" WHERE "status" IN ('FINISHED', 'IN_PLAY', 'PAUSED', 'TIMED', 'SCHEDULED') (base.py:2626)
+2026-03-23 20:23:59,273 - MainThread - sqlmesh.core.scheduler - INFO - Execution failed for node EvaluateNode(snapshot_name='"fpl"."epl"."stg_matches"', interval=(1722470400000, 1774137600000), batch_index=0) (scheduler.py:618)
+Traceback (most recent call last):
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/utils/concurrency.py", line 234, in sequential_apply_to_dag
+    fn(node)
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/scheduler.py", line 554, in run_node
+    audit_results = self.evaluate(
+                    ^^^^^^^^^^^^^^
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/scheduler.py", line 229, in evaluate
+    wap_id = self.snapshot_evaluator.evaluate(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/snapshot/evaluator.py", line 186, in evaluate
+    result = self._evaluate_snapshot(
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/snapshot/evaluator.py", line 821, in _evaluate_snapshot
+    self._render_and_insert_snapshot(
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/snapshot/evaluator.py", line 1041, in _render_and_insert_snapshot
+    apply(query_or_df, index)
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/snapshot/evaluator.py", line 990, in apply
+    evaluation_strategy.insert(
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/snapshot/evaluator.py", line 2677, in insert
+    self.adapter.create_view(
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/engine_adapter/shared.py", line 318, in internal_wrapper
+    return func(*list_args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/engine_adapter/base.py", line 1343, in create_view
+    self.execute(
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/engine_adapter/base.py", line 2603, in execute
+    self._execute(sql, track_rows_processed, **kwargs)
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/engine_adapter/base.py", line 2635, in _execute
+    self.cursor.execute(sql, **kwargs)
+_duckdb.CatalogException: Catalog Error: Table with name pl_matches does not exist!
+Did you mean "football_data.pl_matches"?
+
+LINE 1: ...') = 'DRAW' THEN 'draw' ELSE 'scheduled' END AS "result" FROM "fpl"."raw_football_data"."pl_matches" AS "pl_matches" WHERE...
+                                                                         ^
+
+The above exception was the direct cause of the following exception:
+
+sqlmesh.utils.concurrency.NodeExecutionFailedError: Execution failed for node EvaluateNode(snapshot_name='"fpl"."epl"."stg_matches"', interval=(1722470400000, 1774137600000), batch_index=0)
+2026-03-23 20:23:59,279 - MainThread - sqlmesh.core.context - INFO - Plan application failed. (context.py:1797)
+Traceback (most recent call last):
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/context.py", line 1789, in apply
+    self._apply(plan, circuit_breaker)
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/context.py", line 2582, in _apply
+    self._scheduler.create_plan_evaluator(self).evaluate(
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/plan/evaluator.py", line 105, in evaluate
+    self._evaluate_stages(plan_stages, plan)
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/plan/evaluator.py", line 125, in _evaluate_stages
+    handler(stage, plan)
+  File "/Users/zachpollatsek/projects/epl_mastermind_v2/.venv/lib/python3.12/site-packages/sqlmesh/core/plan/evaluator.py", line 264, in visit_backfill_stage
+    raise PlanError("Plan application failed.")
+sqlmesh.utils.errors.PlanError: Plan application failed.
+2026-03-23 20:23:59,307 - MainThread - root - INFO - Shutting down the event dispatcher (dispatcher.py:159)

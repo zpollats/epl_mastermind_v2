@@ -15,3 +15,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.claude
+
+# SQLMesh
+sqlmesh/.cache/
+sqlmesh/logs/

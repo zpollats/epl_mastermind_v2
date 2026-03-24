@@ -14,3 +14,4 @@ sqlmesh/web/
 Thumbs.db
 .vscode/
 .idea/
+*.claude

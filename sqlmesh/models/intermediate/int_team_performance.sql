@@ -41,7 +41,8 @@ WITH team_fixtures AS (
     WHERE finished = true
 ),
 
-rolling AS (
+-- all matches regardless of home/away
+blended AS (
     SELECT
         team_id,
         gameweek,
@@ -89,6 +90,76 @@ rolling AS (
         ) AS season_goals_against
 
     FROM team_fixtures
+),
+
+-- Home-only rolling stats (last 3 home matches)
+home_rolling AS (
+    SELECT
+        team_id,
+        gameweek,
+        AVG(goals_for) OVER (
+            PARTITION BY team_id ORDER BY gameweek
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS home_attack_3gw,
+
+        AVG(goals_against) OVER (
+            PARTITION BY team_id ORDER BY gameweek
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS home_defense_3gw,
+
+        AVG(CASE WHEN goals_against = 0 THEN 1.0 ELSE 0.0 END) OVER (
+            PARTITION BY team_id ORDER BY gameweek
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS home_cs_rate_3gw
+    
+    FROM team_fixtures
+    WHERE venue = 'home'
+),
+
+-- Away-only rolling stats (last 3 away matches)
+away_rolling AS (
+    SELECT
+        team_id,
+        gameweek,
+        AVG(goals_for) OVER (
+            PARTITION BY team_id ORDER BY gameweek
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS away_attack_3gw,
+
+        AVG(goals_against) OVER (
+            PARTITION BY team_id ORDER BY gameweek
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS away_defense_3gw,
+
+        AVG(CASE WHEN goals_against = 0 THEN 1.0 ELSE 0.0 END) OVER (
+            PARTITION BY team_id ORDER BY gameweek
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS away_cs_rate_3gw
+    
+    FROM team_fixtures
+    WHERE venue = 'away'
 )
 
-SELECT * FROM rolling
+SELECT 
+    b.*,
+
+    -- Home form 
+    h.home_attack_3gw,
+    h.home_defense_3gw,
+    h.home_cs_rate_3gw,
+
+    -- Away form
+    a.away_attack_3gw,
+    a.away_defense_3gw,
+    a.away_cs_rate_3gw
+
+FROM blended b
+LEFT JOIN home_rolling h 
+    ON b.team_id = h.team_id 
+    AND b.gameweek = h.gameweek
+    AND b.venue = 'home'
+LEFT JOIN away_rolling a 
+    ON b.team_id = a.team_id 
+    AND b.gameweek = a.gameweek
+    AND b.venue = 'away'
+    

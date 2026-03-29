@@ -28,7 +28,7 @@ WITH upcoming AS (
 ),
 
 -- Get latest team performance to enrich opponent context
-latest_team_perf AS (
+latest_blended AS (
     SELECT DISTINCT ON (team_id)
         team_id,
         form_5gw,
@@ -38,6 +38,31 @@ latest_team_perf AS (
     FROM epl.int_team_performance
     ORDER BY team_id, gameweek DESC
 ),
+
+-- Latest home-specific performance per team
+latest_home AS (
+    SELECT DISTINCT ON (team_id)
+        team_id,
+        home_attack_3gw,
+        home_defense_3gw,
+        home_cs_rate_3gw
+    FROM epl.int_team_performance
+    WHERE home_attack_3gw IS NOT NULL
+    ORDER BY team_id, gameweek DESC
+),
+
+-- Latest away-specific performance per team
+latest_away AS (
+    SELECT DISTINCT ON (team_id)
+        team_id,
+        away_attack_3gw,
+        away_defense_3gw,
+        away_cs_rate_3gw
+    FROM epl.int_team_performance
+    WHERE away_attack_3gw IS NOT NULL
+    ORDER BY team_id, gameweek DESC
+),
+
 
 enriched AS (
     SELECT
@@ -54,6 +79,21 @@ enriched AS (
         opp.defense_weakness_5gw    AS opponent_defense_weakness,
         opp.clean_sheet_rate_5gw    AS opponent_clean_sheet_rate,
 
+        -- Incorporate home vs. away performance here
+        -- If team is home, opponent is away (use away stats)
+        -- If team is away, opponent is home (use home stats)
+        CASE WHEN u.venue = 'home' THEN opp_away.away_attack_3gw
+             WHEN u.venue = 'away' THEN opp_home.home_attack_3gw
+        END AS opponent_venue_attack,
+
+        CASE WHEN u.venue = 'home' THEN opp_away.away_defense_3gw
+             WHEN u.venue = 'away' THEN opp_home.home_defense_3gw
+        END AS opponent_venue_defense,
+
+        CASE WHEN u.venue = 'home' THEN opp_away.away_cs_rate_3gw
+             WHEN u.venue = 'away' THEN opp_home.home_cs_rate_3gw
+        END AS opponent_venue_cs_rate,
+
         -- Row number for "next N fixtures" windows
         ROW_NUMBER() OVER (
             PARTITION BY u.team_id ORDER BY u.gameweek
@@ -61,7 +101,9 @@ enriched AS (
 
     FROM upcoming u
     LEFT JOIN epl.stg_teams t ON u.opponent_id = t.team_id
-    LEFT JOIN latest_team_perf opp ON u.opponent_id = opp.team_id
+    LEFT JOIN latest_blended opp ON u.opponent_id = opp.team_id
+    LEFT JOIN latest_home opp_home ON u.opponent_id = opp_home.team_id
+    LEFT JOIN latest_away opp_away ON u.opponent_id = opp_away.team_id
 )
 
 SELECT

@@ -21,8 +21,12 @@ next_fixture AS (
         opponent_name    AS next_opponent,
         venue            AS next_venue,
         opponent_form,
+        opponent_attack,
         opponent_defense_weakness,
         opponent_clean_sheet_rate,
+        opponent_venue_attack,
+        opponent_venue_defense,
+        opponent_venue_cs_rate,
         avg_fdr_next_3,
         avg_fdr_next_5
     FROM epl.int_fixture_difficulty
@@ -90,8 +94,12 @@ SELECT
     nf.avg_fdr_next_3,
     nf.avg_fdr_next_5,
     nf.opponent_form,
+    nf.opponent_attack,
     nf.opponent_defense_weakness,
     nf.opponent_clean_sheet_rate,
+    nf.opponent_venue_attack,
+    nf.opponent_venue_defense,
+    nf.opponent_venue_cs_rate,
 
     -- Team context
     tp.team_form,
@@ -107,9 +115,27 @@ SELECT
     -- Composite scores (higher = better pick)
     -- Form + easy fixtures + good value = strong pick
     CASE
-        WHEN p.form > 0 AND nf.next_fdr IS NOT NULL
-        THEN (p.form * 2.0) + ((6.0 - nf.next_fdr) * 1.5) + p.value_form
-        ELSE 0.0
+        WHEN p.form = 0 OR nf.next_fdr IS NULL THEN 0.0
+
+        -- FWD/MID: form + opponent defensive weakness + fixture ease
+        WHEN p.position in ('FWD', 'MID') THEN 
+            (p.form * 2.0)
+            + ((6.0 - nf.next_fdr) * 1.0)
+            + (COALESCE(nf.opponent_venue_defense, nf.opponent_defense_weakness, 1.0) * 2.0)
+
+        -- DEF: form + opponent attacking weakness + clean sheet potential + per 90 xgc
+        WHEN p.position = 'DEF' THEN
+            (p.form * 2.0)
+            + ((6.0 - nf.next_fdr) * 1.0)
+            + ((2.0 - COALESCE(nf.opponent_venue_attack, nf.opponent_attack, 1.0)) * 2.5)
+            + (tp.team_cs_rate * 3.0)
+
+        -- GK: Similar to DEF but heavier on clean sheet rate
+        WHEN p.position = 'GK' THEN
+            (p.form * 1.5)
+            + ((6.0 - nf.next_fdr) * 1.0)
+            + ((2.0 - COALESCE(nf.opponent_venue_attack, nf.opponent_attack, 1.0)) * 3.0)
+            + (tp.team_cs_rate * 4.0)
     END                                         AS pick_score,
 
     -- Differential flag: high form, low ownership

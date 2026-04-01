@@ -132,7 +132,7 @@ SELECT
 
         -- GK: Similar to DEF but heavier on clean sheet rate
         WHEN p.position = 'GK' THEN
-            (p.form * 1.5)
+            (p.form * 2.0)
             + ((6.0 - nf.next_fdr) * 1.0)
             + ((2.0 - COALESCE(nf.opponent_venue_attack, nf.opponent_attack, 1.0)) * 3.0)
             + (tp.team_cs_rate * 4.0)

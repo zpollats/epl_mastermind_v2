@@ -15,6 +15,7 @@ help:
 	@echo "  make sync              Install dependencies"
 	@echo "  make ingest-fpl        Pull FPL API data (no key needed)"
 	@echo "  make ingest-fd         Pull football-data.org data (needs API key)"
+	@echo "  make ingest-history    Pull FPL player history data (no key needed)"
 	@echo "  make ingest            Run both ingestion pipelines"
 	@echo "  make plan-dev          SQLMesh plan in dev environment"
 	@echo "  make plan              SQLMesh plan in prod"
@@ -33,6 +34,9 @@ ingest-fpl:
 
 ingest-fd:
 	@$(WITH_ENV) cd "$(ROOT)/dlt" && uv run python football_data_pipeline.py
+
+ingest-history:
+	@$(WITH_ENV) cd "$(ROOT)/dlt" && uv run python fpl_pipeline.py history
 
 ingest: ingest-fpl ingest-fd
 

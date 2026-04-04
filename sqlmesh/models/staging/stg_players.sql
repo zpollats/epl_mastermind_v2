@@ -30,6 +30,7 @@ SELECT
     COALESCE(goals_scored, 0)                   AS goals_scored,
     COALESCE(assists, 0)                        AS assists,
     COALESCE(clean_sheets, 0)                   AS clean_sheets,
+    COALESCE(defensive_contribution, 0)         AS defensive_contribution,
     COALESCE(goals_conceded, 0)                 AS goals_conceded,
     COALESCE(own_goals, 0)                      AS own_goals,
     COALESCE(penalties_saved, 0)                AS penalties_saved,

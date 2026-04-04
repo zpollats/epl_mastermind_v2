@@ -67,6 +67,7 @@ SELECT
     p.goals_scored,
     p.assists,
     p.clean_sheets,
+    p.defensive_contribution,
     p.bonus,
 
     -- Form & expected

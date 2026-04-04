@@ -1,7 +1,7 @@
 MODEL (
     name epl.int_player_rolling,
     kind VIEW,
-    description 'Player-level rolling stats per gameweek for backtesting. Calculates form and performance metrics using only data available at that point in the season.'
+    description 'Player-level rolling stats per gameweek for live testing. Used for predicting the next gameweek (unknown).'
 );
 
 WITH player_gw as (
@@ -108,12 +108,12 @@ SELECT
     SUM(total_points) OVER (
         PARTITION BY player_id ORDER BY gameweek
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) AS season_points_before,
+    ) AS season_points,
 
     -- Games played up to current GW
     COUNT(*) OVER (
         PARTITION BY player_id ORDER BY gameweek
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) AS games_played_before
+    ) AS games_played
 
 FROM player_gw

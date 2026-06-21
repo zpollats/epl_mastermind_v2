@@ -8,4 +8,4 @@ from sklearn.models import DummyClassifier, LogisticRegression, LinearRegression
 from sklearn.preprocessing import StandardScaler
 
 # Load data
-
+conn = duckdb.connect("../data/fpl.duckdb")

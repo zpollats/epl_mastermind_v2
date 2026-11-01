@@ -30,7 +30,7 @@ uv sync
 
 # 2. Configure
 cp .env.example .env
-# Add your football-data.org API key to .env
+# Adding your football-data.org API key to .env is optional for running
 
 # 3. Run the full pipeline
 make run
@@ -64,7 +64,7 @@ epl_mastermind_v2/
 | `make ingest-fpl` | Pull FPL API data |
 | `make ingest-fd` | Pull football-data.org data |
 | `make ingest-history` | Pull FPL player history data |
-| `make ingest-all` | Run both FPL ingestion pipelines (fpl and history)|
+| `make ingest` | Run both FPL ingestion pipelines (fpl and history)|
 | `make plan-dev` | Plan & run SQLMesh models in dev |
 | `make plan` | Plan & run SQLMesh models in prod |
 | `make run` | Full pipeline: ingest data + plan prod|
@@ -85,6 +85,13 @@ seed_team_mapping ────┤    stg_teams        ──┤
 raw_football_data     │                       │                            │
   .matches ───────────┴──▶ stg_matches      ──┘                           │
 ```
+
+## Design Decisions
+
+- **dlt** handles schema inference and JSON normalization, and can swap destinations without changing extraction code
+- **SQLMesh** over dbt: plan/apply shows breaking versus non-breaking changes before anything runs, dev environments are virtual (no recompute), and unit tests and audits are built in.
+- **DuckDB**: data is small (MBs), so an in-process columnar engine beats running a server, and it reads Parquet on S3 directly when project moves to clound.
+- Backtests are separated because production must never depend on analysis. Both share one scoring path, so the backtest measures what actually ships.
 
 ## Roadmap
 

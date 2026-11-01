@@ -43,7 +43,7 @@ plan-dev:
 	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan dev
 
 plan:
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan
+	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan --auto-apply
 
 run: ingest plan
 

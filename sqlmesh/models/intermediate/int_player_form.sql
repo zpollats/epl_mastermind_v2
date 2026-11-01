@@ -2,7 +2,7 @@ MODEL (
     name epl.int_player_form,
     kind VIEW,
     grain (player_id, fixture_id),
-    description 'Player form through each finished fixture (inclusive). One row per player per fixture including 0-minute rows. team_id is the club the player played for in that fixture. Consumers must joing on earlier fixtures to avoid leakage.'
+    description 'Player form through each finished fixture (inclusive). One row per player per fixture including 0-minute rows. team_id is the club the player played for in that fixture. Consumers must join on earlier fixtures to avoid leakage.'
 );
 
 -- Step 1: one row per player per fixture

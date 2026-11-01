@@ -90,7 +90,7 @@ raw_football_data     │                       │                            �
 
 - **dlt** handles schema inference and JSON normalization, and can swap destinations without changing extraction code
 - **SQLMesh** over dbt: plan/apply shows breaking versus non-breaking changes before anything runs, dev environments are virtual (no recompute), and unit tests and audits are built in.
-- **DuckDB**: data is small (MBs), so an in-process columnar engine beats running a server, and it reads Parquet on S3 directly when project moves to clound.
+- **DuckDB**: data is small (MBs), so an in-process columnar engine beats running a server, and it reads Parquet on S3 directly when project moves to cloud.
 - Backtests are separated because production must never depend on analysis. Both share one scoring path, so the backtest measures what actually ships.
 
 ## Roadmap

@@ -31,7 +31,7 @@ WITH team_fixtures AS (
         f.away_goals      AS goals_for,
         f.home_goals      AS goals_against
     FROM epl.stg_fixtures f
-    WHERE finished = true
+    WHERE f.finished = true
 ),
 
 -- Step 2: derive per-match values once now that every row is from one team's perspective
@@ -93,6 +93,6 @@ WINDOW
     venue_last3 AS (PARTITION BY mv.team_id, mv.venue ORDER BY mv.kickoff_time, mv.fixture_id
                     ROWS BETWEEN 2 PRECEDING AND CURRENT ROW),
     season AS (PARTITION BY mv.team_id ORDER BY mv.kickoff_time, mv.fixture_id
-               ROWS BETWEEN UNBOUNDED PRECEDING),
-    venue_season AS (PARTITION BY mv.team_id ORDER BY mv.kickoff_time, mv.fixture_id
+               ROWS UNBOUNDED PRECEDING),
+    venue_season AS (PARTITION BY mv.team_id, mv.venue ORDER BY mv.kickoff_time, mv.fixture_id
                      ROWS UNBOUNDED PRECEDING)

@@ -11,14 +11,10 @@ dependencies = [
     "sqlmesh[duckdb,web]>=0.142.0",
     # Compute
     "duckdb>=1.3.0",
-    # Data processing (for Python models later)
-    "polars>=1.30.0",
     # HTTP
     "requests>=2.32.0",
     # Config
     "python-dotenv>=1.0.0",
-    "scikit-learn>=1.8.0",
-    "xgboost>=3.2.0",
 ]
 
 [project.optional-dependencies]
@@ -26,9 +22,7 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.8.0",
 ]
-viz = [
-    "marimo>=0.10.0",
-]
+viz = []
 
 [tool.ruff]
 line-length = 100

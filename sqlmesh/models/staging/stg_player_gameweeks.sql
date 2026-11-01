@@ -1,7 +1,7 @@
 MODEL (
     name epl.stg_player_gameweeks,
     kind VIEW,
-    description 'Per-player per-gameweek stats from FPL element-summary endpoing. One row per player per gameweek played.'
+    description 'Per-player per-gameweek stats from FPL element-summary endpoint. One row per player per gameweek played.'
 );
 
 SELECT 

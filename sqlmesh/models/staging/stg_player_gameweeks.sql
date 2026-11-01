@@ -61,4 +61,4 @@ SELECT
     saves
 
 FROM raw_fpl.player_gameweeks
-WHERE minutes > 0
+-- WHERE minutes > 0

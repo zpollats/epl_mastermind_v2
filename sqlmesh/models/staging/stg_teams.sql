@@ -10,7 +10,6 @@ SELECT
     t.short_name,
 
     -- FPL strength ratings (1-5 scale, higher = stronger)
-    t.strength,
     t.strength_overall_home,
     t.strength_overall_away,
     t.strength_attack_home,
@@ -22,5 +21,5 @@ SELECT
     m.football_data_name
 
 FROM raw_fpl.teams t
-LEFT JOIN epl.seed_team_mapping m
+LEFT JOIN epl.seed_team_mapping_26_27 m
     ON t.id = m.fpl_team_id

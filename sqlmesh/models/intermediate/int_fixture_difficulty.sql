@@ -1,120 +1,137 @@
 MODEL (
     name epl.int_fixture_difficulty,
     kind VIEW,
-    description 'Upcoming fixture difficulty for each team — next N gameweeks with FDR ratings and opponent strength.'
+    grain (team_id, fixture_id),
+    description 'Every fixture (past and upcoming) from one team''s perspective with own and opponent form as of that gameweek''s deadline.'
 );
 
--- For each team, get their upcoming fixtures with difficulty context
-WITH upcoming AS (
+-- For each team, get past and upcoming fixtures
+WITH team_fixtures AS (
     SELECT
-        home_team_id    AS team_id,
-        gameweek,
-        away_team_id    AS opponent_id,
-        home_fdr        AS fdr,
-        'home'          AS venue
-    FROM epl.stg_fixtures
-    WHERE finished = false
+        f.fixture_id,
+        f.gameweek,
+        f.kickoff_time,
+        f.finished,
+        f.home_team_id AS team_id,
+        f.away_team_id AS opponent_id,
+        'home'         AS venue,
+        'away'         AS opponent_venue,
+        f.home_fdr     AS fdr
+    FROM epl.stg_fixtures f
 
     UNION ALL
 
     SELECT
-        away_team_id    AS team_id,
-        gameweek,
-        home_team_id    AS opponent_id,
-        away_fdr        AS fdr,
-        'away'          AS venue
-    FROM epl.stg_fixtures
-    WHERE finished = false
+        f.fixture_id,
+        f.gameweek,
+        f.kickoff_time,
+        f.finished,
+        f.away_team_id AS team_id,
+        f.home_team_id AS opponent_id,
+        'away'         AS venue,
+        'home'         AS opponent_venue,
+        f.away_fdr     AS fdr
+    FROM epl.stg_fixtures f
 ),
 
--- Get latest team performance to enrich opponent context
-latest_blended AS (
-    SELECT DISTINCT ON (team_id)
-        team_id,
-        form_5gw,
-        attack_strength_5gw,
-        defense_weakness_5gw,
-        clean_sheet_rate_5gw
-    FROM epl.int_team_performance
-    ORDER BY team_id, gameweek DESC
+-- join for the deadline time
+with_deadline AS (
+    SELECT
+        tf.fixture_id, 
+        tf.gameweek,
+        tf.kickoff_time, 
+        tf.finished,
+        tf.team_id,
+        tf.opponent_id,
+        tf.venue,
+        tf.opponent_venue,
+        tf.fdr,
+        gw.deadline_time
+    FROM team_fixtures AS tf
+    INNER JOIN epl.stg_gameweeks AS gw ON tf.gameweek = gw.gameweek
 ),
 
--- Latest home-specific performance per team
-latest_home AS (
-    SELECT DISTINCT ON (team_id)
-        team_id,
-        home_attack_3gw,
-        home_defense_3gw,
-        home_cs_rate_3gw
-    FROM epl.int_team_performance
-    WHERE home_attack_3gw IS NOT NULL
-    ORDER BY team_id, gameweek DESC
-),
-
--- Latest away-specific performance per team
-latest_away AS (
-    SELECT DISTINCT ON (team_id)
-        team_id,
-        away_attack_3gw,
-        away_defense_3gw,
-        away_cs_rate_3gw
-    FROM epl.int_team_performance
-    WHERE away_attack_3gw IS NOT NULL
-    ORDER BY team_id, gameweek DESC
-),
-
-
+-- Get latest teams performances from int_team_form to enrich data
 enriched AS (
     SELECT
-        u.team_id,
-        u.gameweek,
-        u.opponent_id,
-        u.fdr,
-        u.venue,
-        t.team_name          AS opponent_name,
+        wd.team_id,
+        wd.fixture_id,
+        wd.gameweek,
+        wd.kickoff_time,
+        wd.deadline_time,
+        wd.finished,
+        wd.opponent_id,
+        wd.venue,
+        wd.fdr,
+        t.team_name AS opponent_name,
 
-        -- Opponent strength context
-        opp.form_5gw                AS opponent_form,
-        opp.attack_strength_5gw     AS opponent_attack,
-        opp.defense_weakness_5gw    AS opponent_defense_weakness,
-        opp.clean_sheet_rate_5gw    AS opponent_clean_sheet_rate,
+        -- own team as of deadline
+        own.points_avg_last5 AS team_form,
+        own.goals_for_avg_last5 AS team_attack,
+        own.goals_against_avg_last5 AS team_defense_weakness,
+        own.cs_rate_last5 AS team_cs_rate,
 
-        -- Incorporate home vs. away performance here
-        -- If team is home, opponent is away (use away stats)
-        -- If team is away, opponent is home (use home stats)
-        CASE WHEN u.venue = 'home' THEN opp_away.away_attack_3gw
-             WHEN u.venue = 'away' THEN opp_home.home_attack_3gw
-        END AS opponent_venue_attack,
+        -- opponent overall
+        opp.points_avg_last5 AS opponent_form,
+        opp.goals_for_avg_last5 AS opponent_attack,
+        opp.goals_against_avg_last5 AS opponent_defense_weakness,
+        opp.cs_rate_last5 AS opponent_clean_sheet_rate,
 
-        CASE WHEN u.venue = 'home' THEN opp_away.away_defense_3gw
-             WHEN u.venue = 'away' THEN opp_home.home_defense_3gw
-        END AS opponent_venue_defense,
+        -- opponent venue form
+        ov.venue_goals_for_avg_last3 AS opponent_venue_attack,
+        ov.venue_goals_against_avg_last3 AS opponent_venue_defense,
+        ov.venue_cs_rate_last3 AS opponent_venue_cs_rate, 
 
-        CASE WHEN u.venue = 'home' THEN opp_away.away_cs_rate_3gw
-             WHEN u.venue = 'away' THEN opp_home.home_cs_rate_3gw
-        END AS opponent_venue_cs_rate,
+        -- auditability: when the opponent form was last updated
+        opp.kickoff_time AS opponent_form_as_of
 
-        -- Row number for "next N fixtures" windows
-        ROW_NUMBER() OVER (
-            PARTITION BY u.team_id ORDER BY u.gameweek
-        ) AS fixture_order
-
-    FROM upcoming u
-    LEFT JOIN epl.stg_teams t ON u.opponent_id = t.team_id
-    LEFT JOIN latest_blended opp ON u.opponent_id = opp.team_id
-    LEFT JOIN latest_home opp_home ON u.opponent_id = opp_home.team_id
-    LEFT JOIN latest_away opp_away ON u.opponent_id = opp_away.team_id
+    FROM with_deadline as wd
+    LEFT JOIN epl.stg_teams AS t ON wd.opponent_id = t.team_id
+    ASOF LEFT JOIN epl.int_team_form AS own
+        ON wd.team_id = own.team_id
+        AND wd.deadline_time > own.kickoff_time
+    ASOF LEFT JOIN epl.int_team_form AS opp
+        ON wd.opponent_id = opp.team_id
+        AND wd.deadline_time > opp.kickoff_time
+    ASOF LEFT JOIN epl.int_team_form AS ov
+        ON wd.opponent_id = ov.team_id
+        AND wd.opponent_venue = ov.venue
+        AND wd.deadline_time > ov.kickoff_time
 )
 
 SELECT
-    *,
-    -- Average FDR over next 3 and 5 fixtures
-    AVG(fdr) OVER (
-        PARTITION BY team_id ORDER BY fixture_order
-        ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING
-    ) AS avg_fdr_next_3,
-    AVG(fdr) OVER (
-        PARTITION BY team_id ORDER BY fixture_order
-        ROWS BETWEEN CURRENT ROW AND 4 FOLLOWING
-    ) AS avg_fdr_next_5
-FROM enriched
+    e.team_id,
+    e.fixture_id,
+    e.gameweek,
+    e.kickoff_time,
+    e.deadline_time,
+    e.finished,
+    e.opponent_id,
+    e.venue,
+    e.fdr,
+    e.opponent_name,
+    e.team_form,
+    e.team_attack,
+    e.team_defense_weakness,
+    e.team_cs_rate,
+    e.opponent_form,
+    e.opponent_attack,
+    e.opponent_defense_weakness,
+    e.opponent_clean_sheet_rate,
+    e.opponent_venue_attack,
+    e.opponent_venue_defense,
+    e.opponent_venue_cs_rate, 
+    e.opponent_form_as_of,
+
+    -- upcoming-only columns, NULL for finished rows
+    CASE WHEN NOT e.finished THEN ROW_NUMBER() OVER upcoming END AS fixture_order,
+    CASE WHEN NOT e.finished THEN AVG(e.fdr) OVER next3 END AS avg_fdr_next_3,
+    CASE WHEN NOT e.finished THEN AVG(e.fdr) OVER next5 END AS avg_fdr_next_5
+
+FROM enriched e
+WINDOW 
+    upcoming AS (PARTITION BY e.team_id, e.finished ORDER BY e.kickoff_time, e.fixture_id),
+    next3 AS (PARTITION BY e.team_id, e.finished ORDER BY e.kickoff_time, e.fixture_id
+              ROWS BETWEEN CURRENT ROW and 2 FOLLOWING),
+    next5 AS (PARTITION BY e.team_id, e.finished ORDER BY e.kickoff_time, e.fixture_id
+              ROWS BETWEEN CURRENT ROW and 4 FOLLOWING)

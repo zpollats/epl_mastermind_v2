@@ -28,5 +28,5 @@ SELECT
 
 FROM epl.int_fixture_difficulty fd
 LEFT JOIN epl.stg_teams t ON fd.team_id = t.team_id
-WHERE fd.fixture_order <= 8  -- next 8 fixtures
+WHERE fd.fixture_order <= 8  AND NOT fd.finished
 ORDER BY fd.team_id, fd.fixture_order

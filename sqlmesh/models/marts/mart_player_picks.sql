@@ -20,6 +20,10 @@ next_fixture AS (
         fdr              AS next_fdr,
         opponent_name    AS next_opponent,
         venue            AS next_venue,
+        team_form,
+        team_attack,
+        team_defense_weakness,
+        team_cs_rate,
         opponent_form,
         opponent_attack,
         opponent_defense_weakness,
@@ -32,18 +36,6 @@ next_fixture AS (
     FROM epl.int_fixture_difficulty
     WHERE fixture_order = 1
     ORDER BY team_id
-),
-
--- Get each team's latest rolling performance
-team_perf AS (
-    SELECT DISTINCT ON (team_id)
-        team_id,
-        form_5gw          AS team_form,
-        attack_strength_5gw AS team_attack,
-        defense_weakness_5gw AS team_defense_weakness,
-        clean_sheet_rate_5gw AS team_cs_rate
-    FROM epl.int_team_performance
-    ORDER BY team_id, gameweek DESC
 )
 
 SELECT
@@ -103,10 +95,10 @@ SELECT
     nf.opponent_venue_cs_rate,
 
     -- Team context
-    tp.team_form,
-    tp.team_attack,
-    tp.team_defense_weakness,
-    tp.team_cs_rate,
+    nf.team_form,
+    nf.team_attack,
+    nf.team_defense_weakness,
+    nf.team_cs_rate,
 
     -- Availability
     p.chance_of_playing,
@@ -129,14 +121,14 @@ SELECT
             (p.form * 2.0)
             + ((6.0 - nf.next_fdr) * 1.0)
             + ((2.0 - COALESCE(nf.opponent_venue_attack, nf.opponent_attack, 1.0)) * 2.5)
-            + (tp.team_cs_rate * 3.0)
+            + (nf.team_cs_rate * 3.0)
 
         -- GK: Similar to DEF but heavier on clean sheet rate
         WHEN p.position = 'GK' THEN
             (p.form * 2.0)
             + ((6.0 - nf.next_fdr) * 1.0)
             + ((2.0 - COALESCE(nf.opponent_venue_attack, nf.opponent_attack, 1.0)) * 3.0)
-            + (tp.team_cs_rate * 4.0)
+            + (nf.team_cs_rate * 4.0)
     END                                         AS pick_score,
 
     -- Differential flag: high form, low ownership
@@ -148,7 +140,6 @@ SELECT
 FROM players p
 LEFT JOIN teams t ON p.team_id = t.team_id
 LEFT JOIN next_fixture nf ON p.team_id = nf.team_id
-LEFT JOIN team_perf tp ON p.team_id = tp.team_id
 WHERE
     p.minutes > 0  -- has played this season
     AND p.chance_of_playing >= 50  -- reasonably likely to play

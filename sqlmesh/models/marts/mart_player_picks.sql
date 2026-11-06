@@ -1,41 +1,28 @@
 MODEL (
     name epl.mart_player_picks,
     kind FULL,
-    description 'Weekly player analysis combining form, value, fixture difficulty, and ownership for FPL decisions.'
+    description 'One row per player; pick_score for the next gameweek, summed across double gameweek fixtures.'
 );
 
-WITH players AS (
-    SELECT * FROM epl.stg_players
+WITH next_gw AS (
+    SELECT
+        gameweek
+    FROM epl.stg_gameweeks 
+    WHERE is_next
 ),
 
-teams AS (
-    SELECT * FROM epl.stg_teams
-),
-
--- Get each team's next fixture difficulty
-next_fixture AS (
-    SELECT DISTINCT ON (team_id)
-        team_id,
-        gameweek         AS next_gw,
-        fdr              AS next_fdr,
-        opponent_name    AS next_opponent,
-        venue            AS next_venue,
-        team_form,
-        team_attack,
-        team_defense_weakness,
-        team_cs_rate,
-        opponent_form,
-        opponent_attack,
-        opponent_defense_weakness,
-        opponent_clean_sheet_rate,
-        opponent_venue_attack,
-        opponent_venue_defense,
-        opponent_venue_cs_rate,
-        avg_fdr_next_3,
-        avg_fdr_next_5
-    FROM epl.int_fixture_difficulty
-    WHERE fixture_order = 1
-    ORDER BY team_id
+gw_scores AS (
+    SELECT
+        s.player_id,
+        COUNT(*)                                                   AS fixtures_in_gw,
+        STRING_AGG(s.opponent_name || ' (' || s.venue || ')', ', '
+                   ORDER BY s.kickoff_time)                        AS opponents,
+        AVG(s.fdr)                                                 AS avg_fdr,
+        SUM(s.pick_score)                                          AS pick_score 
+    FROM epl.int_player_fixture_scores AS s 
+    INNER JOIN next_gw AS g 
+        ON s.gameweek = g.gameweek 
+    GROUP BY s.player_id
 )
 
 SELECT
@@ -79,67 +66,26 @@ SELECT
         ELSE 999.0
     END                                         AS cost_per_point,
 
-    -- Next fixture context
-    nf.next_gw,
-    nf.next_opponent,
-    nf.next_venue,
-    nf.next_fdr,
-    nf.avg_fdr_next_3,
-    nf.avg_fdr_next_5,
-    nf.opponent_form,
-    nf.opponent_attack,
-    nf.opponent_defense_weakness,
-    nf.opponent_clean_sheet_rate,
-    nf.opponent_venue_attack,
-    nf.opponent_venue_defense,
-    nf.opponent_venue_cs_rate,
-
-    -- Team context
-    nf.team_form,
-    nf.team_attack,
-    nf.team_defense_weakness,
-    nf.team_cs_rate,
-
     -- Availability
     p.chance_of_playing,
     p.status,
     p.news,
 
-    -- Composite scores (higher = better pick)
-    -- Form + easy fixtures + good value = strong pick
-    CASE
-        WHEN p.form = 0 OR nf.next_fdr IS NULL THEN 0.0
-
-        -- FWD/MID: form + opponent defensive weakness + fixture ease
-        WHEN p.position in ('FWD', 'MID') THEN 
-            (p.form * 2.0)
-            + ((6.0 - nf.next_fdr) * 1.0)
-            + (COALESCE(nf.opponent_venue_defense, nf.opponent_defense_weakness, 1.0) * 2.0)
-
-        -- DEF: form + opponent attacking weakness + clean sheet potential + per 90 xgc
-        WHEN p.position = 'DEF' THEN
-            (p.form * 2.0)
-            + ((6.0 - nf.next_fdr) * 1.0)
-            + ((2.0 - COALESCE(nf.opponent_venue_attack, nf.opponent_attack, 1.0)) * 2.5)
-            + (nf.team_cs_rate * 3.0)
-
-        -- GK: Similar to DEF but heavier on clean sheet rate
-        WHEN p.position = 'GK' THEN
-            (p.form * 2.0)
-            + ((6.0 - nf.next_fdr) * 1.0)
-            + ((2.0 - COALESCE(nf.opponent_venue_attack, nf.opponent_attack, 1.0)) * 3.0)
-            + (nf.team_cs_rate * 4.0)
-    END                                         AS pick_score,
-
     -- Differential flag: high form, low ownership
     CASE
         WHEN p.form >= 5.0 AND p.ownership_pct < 10.0 THEN true
         ELSE false
-    END                                         AS is_differential
+    END                                         AS is_differential,
 
-FROM players p
-LEFT JOIN teams t ON p.team_id = t.team_id
-LEFT JOIN next_fixture nf ON p.team_id = nf.team_id
-WHERE
-    p.minutes > 0  -- has played this season
-    AND p.chance_of_playing >= 50  -- reasonably likely to play
+    -- gw_scores computed values
+    COALESCE(gs.fixtures_in_gw, 0) AS fixtures_in_gw,
+    gs.opponents, 
+    gs.avg_fdr,
+    gs.pick_score
+
+FROM epl.stg_players AS p
+LEFT JOIN epl.stg_teams AS t 
+    ON p.team_id = t.team_id
+LEFT JOIN gw_scores AS gs
+    ON p.player_id = gs.player_id
+WHERE p.minutes > 0 AND p.chance_of_playing >= 50

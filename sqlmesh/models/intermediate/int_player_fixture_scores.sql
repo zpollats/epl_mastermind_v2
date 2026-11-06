@@ -5,7 +5,7 @@ MODEL (
     description 'pick_score for every player x fixture (finished and upcoming), computed once from features as of the gameweek deadline. Finished rows carry actual outcomes for backtesting; upcoming rows have NULL outcomes. Position is current (simplification). No snapshot-only fields (availability, current price) by design.'
 );
 
--- Step 1: finixhed fixtures the player was in the squad for.
+-- Step 1: finished fixtures the player was in the squad for.
 -- int_player_form already has one row per player per finished fixture, with the correct
 -- point-in-time team_id, so reuse
 WITH past AS (
@@ -159,11 +159,11 @@ SELECT
             (wf.points_avg_last3 * 2.0)
             + ((6.0 - wf.fdr) * 1.0)
             + ((2.0 - COALESCE(wf.opponent_venue_attack, wf.opponent_attack, 1.0)) * 2.5)
-            + (wf.team_cs_rate * 3.0)
+            + (COALESCE(wf.team_cs_rate, 0.0) * 3.0)
         WHEN wf.position = 'GK' THEN
             (wf.points_avg_last3 * 2.0)
             + ((6.0 - wf.fdr) * 1.0)
             + ((2.0 - COALESCE(wf.opponent_venue_attack, wf.opponent_attack, 1.0)) * 3.0)
-            + (wf.team_cs_rate * 4.0)
+            + (COALESCE(wf.team_cs_rate, 0.0) * 4.0)
     END AS pick_score
 FROM with_form AS wf

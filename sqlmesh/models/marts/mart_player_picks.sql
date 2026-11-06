@@ -1,7 +1,7 @@
 MODEL (
     name epl.mart_player_picks,
     kind FULL,
-    description 'Weekly player analysis combining form, value, fixture difficulty, and ownership for FPL decisions.'
+    description 'One row per player; pick_score for the next gameweek, summed across double gameweek fixtures.'
 );
 
 WITH next_gw AS (
@@ -88,3 +88,4 @@ LEFT JOIN epl.stg_teams AS t
     ON p.team_id = t.team_id
 LEFT JOIN gw_scores AS gs
     ON p.player_id = gs.player_id
+WHERE p.minutes > 0 AND p.chance_of_playing >= 50

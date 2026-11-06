@@ -6,7 +6,7 @@ A portable analytics pipeline for Premier League and Fantasy Premier League data
 
 ## What It Does
 
-Pulls data weekly from two APIs and builds analytical models for FPL decision-making:
+Pulls data from two APIs and builds analytical models for FPL decision-making:
 
 - **Who should I captain?** — Player form × fixture difficulty × ownership
 - **Where are the differentials?** — High-form, low-ownership picks

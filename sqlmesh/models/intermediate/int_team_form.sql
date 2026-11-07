@@ -2,6 +2,10 @@ MODEL (
     name epl.int_team_form,
     kind VIEW,
     grain (team_id, fixture_id),
+    audits (
+        unique_combination_of_columns(columns := (team_id, fixture_id)),
+        not_null(columns := (team_id, fixture_id, kickoff_time))
+    ),
     description 'Team-level rolling performance from fixture results. One row per team per fixture. Venue columns describe form at that venue only. Consumers must join on earlier fixtures to avoid leakage.'
 );
 

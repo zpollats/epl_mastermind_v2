@@ -2,6 +2,13 @@ MODEL (
     name epl.int_fixture_difficulty,
     kind VIEW,
     grain (team_id, fixture_id),
+    audits (
+        unique_combination_of_columns(columns := (team_id, fixture_id)),
+        not_null(columns := (team_id, fixture_id, opponent_id, deadline_time, kickoff_time)),
+        no_future_features(as_of_col := opponent_form_as_of, decision_col := deadline_time),
+        no_future_features(as_of_col := team_form_as_of, decision_col := deadline_time),
+        no_future_features(as_of_col := opponent_venue_form_as_of, decision_col := deadline_time)
+    ),
     description 'Every fixture (past and upcoming) from one team''s perspective with own and opponent form as of that gameweek''s deadline.'
 );
 
@@ -83,7 +90,9 @@ enriched AS (
         ov.venue_cs_rate_last3 AS opponent_venue_cs_rate, 
 
         -- auditability: when the opponent form was last updated
-        opp.kickoff_time AS opponent_form_as_of
+        opp.kickoff_time AS opponent_form_as_of,
+        own.kickoff_time AS team_form_as_of,
+        ov.kickoff_time AS opponent_venue_form_as_of
 
     FROM with_deadline as wd
     LEFT JOIN epl.stg_teams AS t ON wd.opponent_id = t.team_id
@@ -122,6 +131,8 @@ SELECT
     e.opponent_venue_defense,
     e.opponent_venue_cs_rate, 
     e.opponent_form_as_of,
+    e.team_form_as_of,
+    e.opponent_venue_form_as_of,
 
     -- upcoming-only columns, NULL for finished rows
     CASE WHEN NOT e.finished THEN ROW_NUMBER() OVER upcoming END AS fixture_order,

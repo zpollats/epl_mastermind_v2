@@ -41,15 +41,18 @@ ingest-history:
 ingest: ingest-fpl ingest-history
 
 plan-dev:
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan dev --select-model "^tag:backtest"
+	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan dev --select-model "^tag:backtest" \
+	 --restate-model "epl.mart_*"
 
 plan:
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan --auto-apply --select-model "^tag:backtest"
+	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan --auto-apply \
+	 --select-model "^tag:backtest" --restate-model "epl.stg_*"
 
 run: ingest plan
 
 backtest:
 	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan backtest --auto-apply \
+	 --restate-model "tag:backtest" \
 	&& uv run sqlmesh fetchdf "SELECT * FROM backtest__backtest.summary ORDER BY position"
 
 test:

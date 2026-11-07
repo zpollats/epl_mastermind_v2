@@ -1,4 +1,4 @@
-.PHONY: help sync ingest-fpl ingest-fd ingest-history ingest plan-dev plan run backtest test ui clean
+.PHONY: help sync ingest-fpl ingest-fd ingest-history ingest plan-dev refresh-dev plan run backtest test ui clean
 
 SHELL := /usr/bin/env bash
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
@@ -18,7 +18,8 @@ help:
 	@echo "  make ingest-history    Pull FPL player history data (no key needed)"
 	@echo "  make ingest            Run FPL ingestion pipelines (fpl and history)"
 	@echo "  make plan-dev          SQLMesh plan in dev environment"
-	@echo "  make plan              SQLMesh plan in prod"
+	@echo "  make refresh-dev       Rebuild branch-changed marts in dev after an ingest"
+	@echo "  make plan              SQLMesh plan in prod, then refresh data (run from main)"
 	@echo "  make run               Full pipeline: ingest + plan prod"
 	@echo "  make backtest          Build backtest models in an isolated env and print the summary"
 	@echo "  make test              Run SQLMesh tests"
@@ -41,18 +42,23 @@ ingest-history:
 ingest: ingest-fpl ingest-history
 
 plan-dev:
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan dev --select-model "^tag:backtest" \
-	 --restate-model "epl.mart_*"
+	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan dev --select-model "^tag:backtest"
+
+refresh-dev:
+	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan dev --auto-apply \
+	 --select-model "^tag:backtest"--restate-model "epl.mart_*"
 
 plan:
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan --auto-apply \
-	 --select-model "^tag:backtest" --restate-model "epl.stg_*"
+	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" \
+	&& uv run sqlmesh plan --auto-apply --select-model "^tag:backtest" \
+	&& uv run sqlmesh plan --auto-apply --select-model "^tag:backtest" --restate-model "epl.stg_*"
 
 run: ingest plan
 
 backtest:
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan backtest --auto-apply \
-	 --restate-model "tag:backtest" \
+	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" \
+	&& uv run sqlmesh plan backtest --auto-apply \
+	&& uv run sqlmesh plan backtest --auto-apply --restate-model "tag:backtest" \
 	&& uv run sqlmesh fetchdf "SELECT * FROM backtest__backtest.summary ORDER BY position"
 
 test:

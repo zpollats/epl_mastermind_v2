@@ -46,7 +46,7 @@ plan-dev:
 
 refresh-dev:
 	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan dev --auto-apply \
-	 --select-model "^tag:backtest"--restate-model "epl.mart_*"
+	 --select-model "^tag:backtest" --restate-model "epl.mart_*"
 
 plan:
 	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" \

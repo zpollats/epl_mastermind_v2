@@ -1,4 +1,4 @@
-.PHONY: help sync ingest ingest-fpl ingest-football-data plan plan-dev run test ui clean
+.PHONY: help sync ingest-fpl ingest-fd ingest-history ingest plan-dev plan run backtest test ui clean
 
 SHELL := /usr/bin/env bash
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
@@ -20,6 +20,7 @@ help:
 	@echo "  make plan-dev          SQLMesh plan in dev environment"
 	@echo "  make plan              SQLMesh plan in prod"
 	@echo "  make run               Full pipeline: ingest + plan prod"
+	@echo "  make backtest          Build backtest models in an isolated env and print the summary"
 	@echo "  make test              Run SQLMesh tests"
 	@echo "  make ui                Launch SQLMesh web UI"
 	@echo "  make clean             Delete local data"
@@ -40,12 +41,16 @@ ingest-history:
 ingest: ingest-fpl ingest-history
 
 plan-dev:
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan dev
+	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan dev --select-model "^tag:backtest"
 
 plan:
-	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan --auto-apply
+	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan --auto-apply --select-model "^tag:backtest"
 
 run: ingest plan
+
+backtest:
+	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan backtest --auto-apply \
+	&& uv run sqlmesh fetchdf "SELECT * FROM backtest__backtest.summary ORDER BY position"
 
 test:
 	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh test

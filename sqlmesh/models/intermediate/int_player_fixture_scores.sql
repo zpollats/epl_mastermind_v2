@@ -2,6 +2,11 @@ MODEL (
     name epl.int_player_fixture_scores,
     kind VIEW,
     grain (player_id, fixture_id),
+    audits (
+        unique_combination_of_columns(columns := (player_id, fixture_id)),
+        not_null(columns := (player_id, fixture_id, team_id, deadline_time)),
+        no_future_features(as_of_col := player_form_as_of, decision_col := deadline_time)
+    ),
     description 'pick_score for every player x fixture (finished and upcoming), computed once from features as of the gameweek deadline. Finished rows carry actual outcomes for backtesting; upcoming rows have NULL outcomes. Position is current (simplification). No snapshot-only fields (availability, current price) by design.'
 );
 

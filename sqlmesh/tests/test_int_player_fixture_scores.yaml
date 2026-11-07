@@ -1,0 +1,104 @@
+# Proves the core point-in-time guarantee of int_player_fixture_scores:
+#   1. Features for a fixture never include that fixture's own result.
+#   2. In a double gameweek, the second fixture doesn't see the first
+#      (both are picked at the same deadline).
+#
+# Technique: the target fixtures' own form rows carry a sentinel value (99.0).
+# If 99.0 ever reaches the output, the ASOF join is leaking.
+#
+# Timeline (UTC) for player 10 on team 1:
+#   F101  kickoff 2026-08-16 14:00   history
+#   F202  kickoff 2026-08-23 14:00   history  <- last row before the GW3 deadline
+#   GW3   deadline 2026-08-29 10:00  <- the decision point
+#   F301  kickoff 2026-08-30 14:00   target #1 (sentinel)
+#   F303  kickoff 2026-09-02 19:00   target #2, same GW3 (sentinel)
+#
+# Expected: both targets get F202's form (7.0), as of F202's kickoff.
+
+test_features_exclude_own_fixture:
+  model: epl.int_player_fixture_scores
+  inputs:
+    # Form "through" each fixture, inclusive. The model must pick the latest
+    # row strictly before the deadline.
+    epl.int_player_form:
+      rows:
+        - player_id: 10
+          fixture_id: 101
+          team_id: 1
+          kickoff_time: "2026-08-16 14:00:00+00"
+          points_avg_last3: 2.0
+          minutes_avg_last3: 90.0
+          fixtures_played: 1
+          total_points: 2
+          minutes: 90
+          selected_by: 1000
+        - player_id: 10
+          fixture_id: 202
+          team_id: 1
+          kickoff_time: "2026-08-23 14:00:00+00"
+          points_avg_last3: 7.0
+          minutes_avg_last3: 90.0
+          fixtures_played: 2
+          total_points: 12
+          minutes: 90
+          selected_by: 1000
+        - player_id: 10
+          fixture_id: 301
+          team_id: 1
+          kickoff_time: "2026-08-30 14:00:00+00"
+          points_avg_last3: 99.0   # sentinel: F301's own result
+          minutes_avg_last3: 90.0
+          fixtures_played: 3
+          total_points: 99
+          minutes: 90
+          selected_by: 1000
+        - player_id: 10
+          fixture_id: 303
+          team_id: 1
+          kickoff_time: "2026-09-02 19:00:00+00"
+          points_avg_last3: 99.0   # sentinel: F303's own result
+          minutes_avg_last3: 90.0
+          fixtures_played: 4
+          total_points: 99
+          minutes: 90
+          selected_by: 1000
+
+    epl.stg_players:
+      rows:
+        - player_id: 10
+          team_id: 1
+          player_name: Saka
+          position: MID
+
+    # ONLY the two GW3 fixtures. F101 and F202 have no row here, so the inner
+    # join in with_context drops them, and the output holds just the targets.
+    # Both rows share the GW3 deadline: that's what makes this a double gameweek.
+    epl.int_fixture_difficulty:
+      rows:
+        - team_id: 1
+          fixture_id: 301
+          gameweek: 3
+          kickoff_time: "2026-08-30 14:00:00+00"
+          deadline_time: "2026-08-29 10:00:00+00"
+          finished: true
+          fdr: 3
+        - team_id: 1
+          fixture_id: 303
+          gameweek: 3
+          kickoff_time: "2026-09-02 19:00:00+00"
+          deadline_time: "2026-08-29 10:00:00+00"
+          finished: true
+          fdr: 3
+
+  outputs:
+    partial: true   # only assert the columns listed below
+    query:
+      rows:
+        - player_id: 10
+          fixture_id: 301
+          points_avg_last3: 7.0                        # F202's form, not the sentinel
+          player_form_as_of: "2026-08-23 14:00:00+00"  # F202's kickoff
+        - player_id: 10
+          fixture_id: 303
+          points_avg_last3: 7.0                        # same: the DGW assertion
+          player_form_as_of: "2026-08-23 14:00:00+00"

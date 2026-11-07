@@ -1,4 +1,4 @@
-.PHONY: help sync ingest ingest-fpl ingest-football-data plan plan-dev run test ui clean
+.PHONY: help sync ingest-fpl ingest-fd ingest-history ingest plan-dev plan run backtest test ui clean
 
 SHELL := /usr/bin/env bash
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
@@ -48,7 +48,7 @@ plan:
 
 run: ingest plan
 
-backtest: plan
+backtest:
 	@$(WITH_ENV) cd "$(ROOT)/sqlmesh" && uv run sqlmesh plan backtest --auto-apply \
 	&& uv run sqlmesh fetchdf "SELECT * FROM backtest__backtest.summary ORDER BY position"
 

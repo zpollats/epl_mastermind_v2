@@ -34,8 +34,8 @@ player_gw AS (
 squad_quota AS (
     SELECT 
         q.position,
-        q.picks,
-        FROM (VALUES ('GK', 2), ('DEF', 5), ('MID', 5), ('FWD', 3)) AS q(position, picks)
+        q.picks
+    FROM (VALUES ('GK', 2), ('DEF', 5), ('MID', 5), ('FWD', 3)) AS q(position, picks)
 ),
 
 eligible AS (
@@ -53,7 +53,7 @@ eligible AS (
         ON pg.position = q.position
     WHERE pg.has_min_history
         AND pg.pick_score IS NOT NULL
-),
+)
 
 SELECT 
     e.player_id,

@@ -1,7 +1,7 @@
 MODEL (
     name backtest.summary,
     kind FULL,
-    tag [backtest],
+    tags [backtest],
     grain (gameweek, position),
     description 'Overall summary of model performance by position'
 );

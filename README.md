@@ -8,9 +8,9 @@ A portable analytics pipeline for Premier League and Fantasy Premier League data
 
 Pulls data from two APIs and builds analytical models for FPL decision-making:
 
-- **Who should I captain?** — Player form × fixture difficulty × ownership
+- **Who should I captain?** — Player form × fixture difficulty
 - **Where are the differentials?** — High-form, low-ownership picks
-- **Which teams have easy runs?** — Fixture ticker with FDR ratings 5 GWs out
+- **Which teams have easy runs?** — Next 8 fixtures per team, with average FDR over the next 3 and 5
 - **Does the scoring model work?** Backtests the player-scoring model against historical gameweek results
 
 ## Data Sources
@@ -18,7 +18,7 @@ Pulls data from two APIs and builds analytical models for FPL decision-making:
 | Source | What | Auth |
 |---|---|---|
 | [FPL API](https://fantasy.premierleague.com/api/bootstrap-static/) | Players, teams, fixtures, gameweeks | None (public) |
-| [football-data.org](https://www.football-data.org/) | Match results, standings, scorers | Free API key |
+| [football-data.org](https://www.football-data.org/) | Match results, standings, scorers (ingested, not yet modeled) | Free API key |
 
 ## Quickstart
 
@@ -45,14 +45,15 @@ epl_mastermind_v2/
 │   └── football_data_pipeline.py  # football-data.org → DuckDB
 ├── sqlmesh/                    # Transformation layer
 │   ├── config.yaml
-│   ├── external_model.yaml
+│   ├── external_models.yaml
 │   ├── seeds/                  # Static reference data (team mappings for 26/27 season)
 │   ├── audits/
 │   ├── tests/  
 │   └── models/
 │       ├── staging/            # Clean & type-cast raw data
 │       ├── intermediate/       # Team performance, fixture difficulty, scoring
-│       └── marts/              # Final serving models
+│       ├── marts/              # Final serving models
+│       └── backtest/           # Model evaluation (isolated env)
 ├── data/                       # Local DuckDB database (gitignored)
 ├── Makefile                    # Common commands
 └── pyproject.toml              # Dependencies (managed by uv)
@@ -69,7 +70,7 @@ epl_mastermind_v2/
 | `make ingest` | Run both FPL ingestion pipelines (fpl and history) |
 | `make plan-dev` | Plan & run SQLMesh models in dev |
 | `make refresh-dev` | Rerun mart generation in dev environment |
-| `make plan` | Plan & run SQLMesh models in prod |
+| `make plan` | Deploy model changes to prod, then refresh data |
 | `make run` | Full pipeline: ingest data + plan prod |
 | `make backtest` | Run backtest models for validation |
 | `make test` | Run SQLMesh tests |
@@ -116,17 +117,17 @@ flowchart TD
 
 - **dlt** handles schema inference and JSON normalization, and can swap destinations without changing extraction code
 - **SQLMesh** over dbt: plan/apply shows breaking versus non-breaking changes before anything runs, dev environments are virtual (no recompute), and unit tests and audits are built in.
-  - ASOF enforces strict point-in-time features using the gameweek deadline; only look at data from the most recent finished fixture prior to the deadline. This strcuture ensures accuracy during double gameweeks and blanks.
-  - Audits for ASOF columsn to ensure no data leakage with future information making its way into current fixtures.
 - **DuckDB**: data is small (MBs), so an in-process columnar engine beats running a server, and it reads Parquet on S3 directly when project moves to cloud.
+- ASOF enforces strict point-in-time features using the gameweek deadline; only look at data from the most recent finished fixture prior to the deadline. This strcuture ensures accuracy during double gameweeks and blanks.
+- Audits for ASOF columsn to ensure no data leakage with future information making its way into current fixtures plus a unit test with a sentinel value proving a fixture’s own result never reaches its features.
 - Backtests are separated because production must never depend on analysis. Both share one scoring path, so the backtest measures what actually ships.
   - Backtest, GW4–9 (90 picks, 15 per gameweek by squad size): the model averaged 4.39 pts/pick vs 4.88 for the most-owned players at each position and 2.18 for the average eligible player. Within-position Spearman ρ ≈ 0.38. The model clearly beats the field but does not yet beat the crowd.
 
 ## Roadmap
 
-- [x] **Phase 1:** Core pipeline: dlt + SQLMesh + DuckDB, run locally
-- [ ] **Phase 2:** Containerize: Docker image that runs the full pipeline; SQLMesh tests and audits for data quality
-- [ ] **Phase 3:** AWS deployment: S3 storage, least-privilege IAM, CloudWatch alerts, all provisioned with Terraform
-- [ ] **Phase 4:** Scheduled runs on ECS Fargate via EventBridge; CI/CD with GitHub Actions (OIDC)
-- [ ] **Phase 5:** Star schema in S3, queried with AthenaStreamlit
+- [x] **Phase 1:** Core pipeline: dlt + SQLMesh + DuckDB, run locally; SQLMesh tests and audits for data quality
+- [ ] **Phase 2:** Containerize: Docker image that runs the full pipeline
+- [ ] **Phase 3:** AWS deployment: S3 storage, least-privilege IAM, all provisioned with Terraform
+- [ ] **Phase 4:** Scheduled runs on ECS Fargate via EventBridge; CloudWatch alerts; CI/CD with GitHub Actions (OIDC)
+- [ ] **Phase 5:** Star schema in S3, queried with Athena
 - [ ] **Phase 6:** Later: public dashboard; ML-based scoring model

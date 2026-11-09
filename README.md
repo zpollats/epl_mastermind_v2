@@ -126,7 +126,7 @@ flowchart TD
 
 - [x] **Phase 1:** Core pipeline: dlt + SQLMesh + DuckDB, run locally
 - [ ] **Phase 2:** Containerize: Docker image that runs the full pipeline; SQLMesh tests and audits for data quality
-- [ ] **Phase 3:** AWS deployment: S3 storage, ECR + ECS Fargate on an EventBridge schedule, least-privilege IAM, CloudWatch alerts, all provisioned with Terraform
-- [ ] **Phase 4:** CI/CD: GitHub Actions runs tests and `sqlmesh plan` on PRs, builds and pushes the image on merge
-- [ ] **Phase 5:** Serving layer: public dashboard (Evidence.dev or Streamlit)
-- [ ] **Phase 6:** Modeling: ELO ratings and match predictions
+- [ ] **Phase 3:** AWS deployment: S3 storage, least-privilege IAM, CloudWatch alerts, all provisioned with Terraform
+- [ ] **Phase 4:** Scheduled runs on ECS Fargate via EventBridge; CI/CD with GitHub Actions (OIDC)
+- [ ] **Phase 5:** Star schema in S3, queried with AthenaStreamlit
+- [ ] **Phase 6:** Later: public dashboard; ML-based scoring model

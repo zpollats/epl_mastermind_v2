@@ -118,8 +118,8 @@ flowchart TD
 - **dlt** handles schema inference and JSON normalization, and can swap destinations without changing extraction code
 - **SQLMesh** over dbt: plan/apply shows breaking versus non-breaking changes before anything runs, dev environments are virtual (no recompute), and unit tests and audits are built in.
 - **DuckDB**: data is small (MBs), so an in-process columnar engine beats running a server, and it reads Parquet on S3 directly when project moves to cloud.
-- ASOF enforces strict point-in-time features using the gameweek deadline; only look at data from the most recent finished fixture prior to the deadline. This strcuture ensures accuracy during double gameweeks and blanks.
-- Audits for ASOF columsn to ensure no data leakage with future information making its way into current fixtures plus a unit test with a sentinel value proving a fixture’s own result never reaches its features.
+- ASOF enforces strict point-in-time features using the gameweek deadline; only look at data from the most recent finished fixture prior to the deadline. This structure ensures accuracy during double gameweeks and blanks.
+- Audits for ASOF columns to ensure no data leakage with future information making its way into current fixtures plus a unit test with a sentinel value proving a fixture’s own result never reaches its features.
 - Backtests are separated because production must never depend on analysis. Both share one scoring path, so the backtest measures what actually ships.
   - Backtest, GW4–9 (90 picks, 15 per gameweek by squad size): the model averaged 4.39 pts/pick vs 4.88 for the most-owned players at each position and 2.18 for the average eligible player. Within-position Spearman ρ ≈ 0.38. The model clearly beats the field but does not yet beat the crowd.
 

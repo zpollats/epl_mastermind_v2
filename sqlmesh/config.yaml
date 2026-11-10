@@ -2,7 +2,7 @@ gateways:
   local:
     connection:
       type: duckdb
-      database: ../data/fpl.duckdb
+      database: "{{ env_var('FPL_DUCKDB_PATH', '../data/fpl.duckdb') }}"
 
 default_gateway: local
 

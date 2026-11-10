@@ -10,6 +10,7 @@ Endpoints ingested:
     - element-summary  -> per-player gameweek history (points, xG, xA, etc.)
 """
 
+import os
 import time
 import dlt
 import requests
@@ -130,7 +131,7 @@ def fpl_player_history_source():
 def main():
     pipeline = dlt.pipeline(
         pipeline_name="fpl_pipeline",
-        destination="duckdb",
+        destination=dlt.destinations.duckdb(os.environ["FPL_DUCKDB_PATH"]),
         dataset_name="raw_fpl",
         progress="log",
     )
@@ -145,7 +146,7 @@ def main():
 def load_player_history():
     pipeline = dlt.pipeline(
         pipeline_name="fpl_pipeline",
-        destination="duckdb",
+        destination=dlt.destinations.duckdb(os.environ["FPL_DUCKDB_PATH"]),
         dataset_name="raw_fpl",
         progress="log",
     )

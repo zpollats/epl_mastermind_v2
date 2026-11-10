@@ -79,7 +79,7 @@ def football_data_source():
 def main():
     pipeline = dlt.pipeline(
         pipeline_name="football_data_pipeline",
-        destination="duckdb",
+        destination=dlt.destinations.duckdb(os.environ["FPL_DUCKDB_PATH"]),
         dataset_name="football_data",
         progress="log",
     )

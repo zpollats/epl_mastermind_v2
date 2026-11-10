@@ -32,7 +32,10 @@ uv sync
 cp .env.example .env
 # Adding your football-data.org API key to .env is optional for running
 
-# 3. Run the full pipeline
+# 3. Make a local directory for data storage
+mkdir -p data
+
+# 4. Run the full pipeline
 make run
 ```
 

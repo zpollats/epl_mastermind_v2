@@ -7,8 +7,10 @@ ENV_FILE ?= $(ROOT)/.env
 export FPL_DUCKDB_PATH ?= $(ROOT)/data/fpl.duckdb
 
 define WITH_ENV
-set -a; [[ -f "$(ENV_FILE)" ]] && . "$(ENV_FILE)"; set +a;
+set -a; [[ -f "$(ENV_FILE)" ]] && . "$(ENV_FILE)"; set +a; mkdir -p "$$(dirname "$${FPL_DUCKDB_PATH}")";
 endef
+
+
 
 help:
 	@echo ""

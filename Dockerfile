@@ -23,7 +23,7 @@ WORKDIR /app
 RUN useradd -u 1001 -m -s /bin/bash appuser
 
 # install dependencies using uv
-COPY uv.lock pyproject.toml ./
+COPY uv.lock pyproject.toml .python-version ./
 RUN uv sync --locked
 COPY --chown=appuser . .
 

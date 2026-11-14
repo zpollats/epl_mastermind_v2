@@ -15,3 +15,6 @@ dlt/.dlt/
 .DS_Store
 Dockerfile
 .dockerignore
+README.md
+.gitignore
+.env.example

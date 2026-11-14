@@ -9,4 +9,9 @@ practice/
 sqlmesh/logs/*
 sqlmesh/.cache/
 dlt/.dlt/
-**/.__pycache__/
+**/__pycache__/
+**/*.duckdb
+**/*.duckdb.wal
+.DS_Store
+Dockerfile
+.dockerignore

@@ -10,7 +10,7 @@ COPY --from=ghcr.io/astral-sh/uv:0.8.8 /uv /uvx /bin/
 # Specify container location for duckdb file
 ENV RUNTIME__DLTHUB_TELEMETRY=False UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy FPL_DUCKDB_PATH="/data/fpl.duckdb" \
-    SQLMESH__DISABLE_ANONYMIZED_ANALYTICS=1
+    SQLMESH__DISABLE_ANONYMIZED_ANALYTICS=1 UV_NO_SYNC=1
 
 # install make
 RUN apt-get update && \

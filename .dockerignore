@@ -7,3 +7,6 @@ practice/
 *.parquet
 .git/
 sqlmesh/logs/*
+sqlmesh/.cache/
+dlt/.dlt/
+**/.__pycache__/
